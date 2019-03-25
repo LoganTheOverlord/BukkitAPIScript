@@ -53,7 +53,7 @@ public class Main extends JavaPlugin implements Listener {
 		Listener l = null;
 		for (String s : lines) {
 			this.getServer().getLogger().info(s);
-			if (s.equalsIgnoreCase("onPlayerChat") || s.equalsIgnoreCase("onPlayerLevelChange")) {
+			if (s.equalsIgnoreCase("onPlayerChat") || s.equalsIgnoreCase("onPlayerLevelChange") || s.equalsIgnoreCase("onEntityDamagedByEntity")) {
 				if (cev != s) {
 					if (s.equalsIgnoreCase("onPlayerChat")) {
 						cev = s;
@@ -63,6 +63,11 @@ public class Main extends JavaPlugin implements Listener {
 					if (s.equalsIgnoreCase("onPlayerLevelChange")) {
 						cev = s;
 						l = (Listener) new PlayerChatEventHandler(this);
+						handlers.add(l);
+					}
+					if (s.equalsIgnoreCase("onEntityDamagedByEntity")) {
+						cev = s;
+						l = (Listener) new EntityDamageByEntityEventHandler(this);
 						handlers.add(l);
 					}
 				} else {

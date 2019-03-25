@@ -42,7 +42,7 @@ public class PlayerChatEventHandler implements Listener {
 			if (u.equals("cancel event")) {
 				e.setCancelled(true);
 			}
-			p.nodep.proccessTask2(u, new Object[] { e.getPlayer() });
+			p.nodep.proccessTask2(u, new Object[] { e.getPlayer(), e });
 		}
 	}
 
