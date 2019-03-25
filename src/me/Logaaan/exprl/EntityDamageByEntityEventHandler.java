@@ -3,11 +3,9 @@ package me.Logaaan.exprl;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.player.PlayerChatEvent;
 
 public class EntityDamageByEntityEventHandler implements Listener {
 	
@@ -28,7 +26,7 @@ public class EntityDamageByEntityEventHandler implements Listener {
 	public void onChat(EntityDamageByEntityEvent e) {
 		for (String i : instructions) {
 			String u = i;
-			p.nodep.proccessTask2(u, new Object[] { null, e });
+			p.nodep.proccessTask2(u, new Object[] { e.getCause(), e });
 		}
 	}
 

@@ -5,17 +5,16 @@ import java.util.List;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerLevelChangeEvent;
-
-public class PlayerLevelUpEventHandler implements Listener {
+import org.bukkit.event.block.BlockBreakEvent;
+public class BlockBreakEventHandler implements Listener {
 	
 	Main p;
 	public List<String> instructions;
 	
-	public PlayerLevelUpEventHandler(Main m) {
+	public BlockBreakEventHandler(Main m) {
 		p = m;
 		instructions = new ArrayList<String>();
-		p.getServer().getLogger().info("Loaded PlayerLevelChangeEvent");
+		p.getServer().getLogger().info("Loaded BlockBreakEvent");
 	}
 	
 	public void addSet(String s) {
@@ -23,12 +22,10 @@ public class PlayerLevelUpEventHandler implements Listener {
 	}
 	
 	@EventHandler
-	public void onChat(PlayerLevelChangeEvent e) {
+	public void onChat(BlockBreakEvent e) {
 		for (String i : instructions) {
 			String u = i;
-			if (e.getOldLevel() < e.getNewLevel()) {
-				p.nodep.proccessTask2(u, new Object[] { e.getPlayer(), e });
-			}
+			p.nodep.proccessTask2(u, new Object[] { e.getBlock(), e });
 		}
 	}
 
