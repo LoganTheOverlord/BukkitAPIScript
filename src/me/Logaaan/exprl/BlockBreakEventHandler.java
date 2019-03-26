@@ -25,7 +25,7 @@ public class BlockBreakEventHandler implements Listener {
 	public void onChat(BlockBreakEvent e) {
 		for (String i : instructions) {
 			String u = i;
-			p.nodep.proccessTask2(u, new Object[] { e.getBlock(), e });
+			p.nodep.proccessTask2(u, new Object[] { e.getPlayer(), e });
 		}
 	}
 

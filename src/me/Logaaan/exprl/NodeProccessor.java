@@ -139,11 +139,46 @@ public class NodeProccessor {
 			String mode = null;
 			Object ifss = null;
 			for (String s : split) {
+				if (!s.contains("if")) {
 		//		m.getServer().getLogger().info(s);
 				if (s.contains("player")) {
 					Object player = program_args[0];
 					String classname = "player";
 					Class c = player.getClass();
+					Object me = null;
+					if (isMethod(s)) {
+						me = getIsMethod(player, s);
+						m.getServer().getLogger().info(me.toString());
+					}
+					if (me != null) {
+						ifa = me;
+					}
+				}	else {
+					if (ifa == null) {
+						ifa = s;
+					}
+				}
+				if (s.contains("event")) {
+					Object player = program_args[1];
+					String classname = "event";
+					Class c = player.getClass();
+					Object me = null;
+					if (isMethod(s)) {
+						me = getIsMethod(player, s);
+						m.getServer().getLogger().info(me.toString());
+					}
+					if (me != null) {
+						ifa = me;
+					}
+				}	else {
+					if (ifa == null) {
+						ifa = s;
+					}
+				}
+				if (s.contains("Bukkit")) {
+					Object player = Bukkit.class;
+					String classname = "player";
+					Class c = (Class) player;
 					Object me = null;
 					if (isMethod(s)) {
 						me = getIsMethod(player, s);
@@ -188,6 +223,7 @@ public class NodeProccessor {
 
 						break;
 					}
+				}
 				}
 			}
 			if (mode != null) {
@@ -464,13 +500,254 @@ public class NodeProccessor {
 			}
 		}
 		}
-		if (task.contains("Class")) {
+		if (!task.contains("player") && !task.contains("Bukkit") && !task.contains("event") && !task.contains("Class")) {
 			Object player = new Object();
+			String classname = "player";
+			Class c = player.getClass();
+			for (String var : variables.keySet()) {
+				if (task.contains(var)) {
+					player = variables.get(var);
+					task = task.replace(var, "");
+					c = player.getClass();
+				}
+			}
+			for (Method d : c.getMethods()) {
+				if (task.contains(d.getName())) {
+					Class[] params = d.getParameterTypes();
+					int params_count = d.getParameterCount();
+					task = task.replace(d.getName()+"(", "");
+					String[] fields = task.split(";");
+					if (fields.length == params.length) {
+					List<String> newclass = new ArrayList<String>();
+					Map<String,List<String>> arguments = new HashMap<String,List<String>>();
+					List<Object> arguments_final = new ArrayList<Object>();
+					for (String f : fields) {
+						if (f.contains("new")) {
+							f = f.replace("new ", "");
+							f = f.replaceAll("\\s+","");
+							f = f.replace("(", "~");
+							String[] classtodeclare = f.split("~");
+					//		m.getServer().getLogger().info(classtodeclare[0]);
+							newclass.add(classtodeclare[0]);
+							String nw = classtodeclare[0];
+							classtodeclare[1] = classtodeclare[1].replace(")", "");
+					//		m.getServer().getLogger().info(classtodeclare[1]);
+							List<String> ags = new ArrayList<String>();
+							String[] args = classtodeclare[1].split(",");
+							if (args.length > 0) {
+								for (String ar : args) {
+									ags.add(ar);
+								}
+							} else {
+								String plll = classtodeclare[1].replace(")", "");
+								ags.add(plll);
+							}
+							arguments.put(nw, ags);
+						} else {
+							arguments.put(f, Arrays.asList(f.replace(")","")));
+						}
+					}
+				//	m.getServer().getLogger().info(newclass.size()+"");
+					int index = 0;
+					if (newclass.size() > 0) {
+						for (String ff : newclass) {
+							if (arguments.containsKey(ff)) {
+							//	m.getServer().getLogger().info(ff);
+								try {
+							//		m.getServer().getLogger().info("Getting parameters..");
+								//	m.getServer().getLogger().info(params[index].getName().replace("[L", "").replace(";", ""));
+									Constructor[] cont = null;
+									try {
+										cont = Class.forName(params[index].getName().replace("[L", "").replace(";", "")).getConstructors();
+									} catch (SecurityException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									} catch (ClassNotFoundException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									}
+									for (Constructor co : cont) {
+										Parameter[] coneeds = co.getParameters();
+										if (coneeds.length == arguments.get(ff).size()) {
+								//		m.getServer().getLogger().info("Types: "+coneeds.length);
+										List<Object> papa = new ArrayList<Object>();
+										int indp = 0;
+										for (String parse : arguments.get(ff)) {
+											try {	
+													Class cll = (Class) coneeds[indp].getType().getClass().getGenericSuperclass();
+													Object param = cll.cast(parse);
+													papa.add(param);
+												} catch(ClassCastException e) {
+													e.printStackTrace();
+												}
+											indp++;
+												
+										}
+										if (co.getParameterCount() == 1) {
+									//		m.getServer().getLogger().info("Param count: 1");
+											try {
+												Object arg1 = papa.get(0);
+												if (isMethod(papa.get(0).toString())) {
+													arg1 = getIsMethod(player, papa.get(0).toString());
+												}
+												Object parsed = co.newInstance(papa.get(0));
+												arguments_final.add(parsed);
+											} catch (IllegalArgumentException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											} catch (InvocationTargetException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											}
+										}
+										if (co.getParameterCount() == 2) {
+											try {
+												Object parsed = co.newInstance(papa.get(0), papa.get(1));
+												arguments_final.add(parsed);
+											} catch (IllegalArgumentException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											} catch (InvocationTargetException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											}
+										}
+										if (co.getParameterCount() == 3) {
+											try {
+												Object parsed = co.newInstance(papa.get(0), papa.get(1), papa.get(2));
+												arguments_final.add(parsed);
+											} catch (IllegalArgumentException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											} catch (InvocationTargetException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											}
+										}
+										if (co.getParameterCount() == 4) {
+											try {
+												Object parsed = co.newInstance(papa.get(0), papa.get(1), papa.get(2), papa.get(3));
+												arguments_final.add(parsed);
+											} catch (IllegalArgumentException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											} catch (InvocationTargetException e) {
+												// TODO Auto-generated catch block
+												e.printStackTrace();
+											}
+										}
+									}
+									}
+								} catch (InstantiationException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} catch (IllegalAccessException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+							}
+						}
+						index++;
+					} else {
+						for (String key : arguments.keySet()) {
+							List<String> cr = arguments.get(key);
+							arguments_final.add(cr.get(0));
+						}
+					}
+				//	m.getServer().getLogger().info(d.getName());
+			//		m.getServer().getLogger().info(arguments_final.size()+"");
+					if (params.length == 1) {
+						if (arguments_final.size() > 0) {
+							try {
+								Class arg1 = parseClass(params[0].getName());
+								Object finall = arguments_final.get(0);
+								finall = argumentParser(arg1, player, finall);
+							//	m.getServer().getLogger().info(finall.getClass().getName() + " " + arg1.getName());
+								((Player) player).getClass().getDeclaredMethod(d.getName(), arg1).invoke(player, finall);
+							} catch (IllegalAccessException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							} catch (IllegalArgumentException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							} catch (InvocationTargetException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							} catch (NoSuchMethodException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							} catch (SecurityException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+						}
+					}
+					
+					if (params.length == 2) {
+						if (arguments_final.size() > 0) {
+							try {
+								Class arg1 = int.class;
+								try {
+									arg1 = Class.forName(params[0].getName().replace("[L", "").replace("[B", "").replace(";", ""));
+								} catch (ClassNotFoundException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+								Class arg2 = int.class;
+								try {
+									arg1 = Class.forName(params[1].getName().replace("[L", "").replace("[B", "").replace(";", ""));
+								} catch (ClassNotFoundException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+								((Player) player).getClass().getDeclaredMethod(d.getName(), arg1, arg2).invoke(player, arguments_final.get(0), arguments_final.get(1));
+
+							} catch (IllegalAccessException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (IllegalArgumentException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (InvocationTargetException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (NoSuchMethodException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (SecurityException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+					}
+					
+					if (params.length == 3) {
+						try {
+							d.invoke(arguments_final.get(0), arguments_final.get(1), arguments_final.get(2));
+						} catch (IllegalAccessException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IllegalArgumentException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (InvocationTargetException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					
+					
+				}
+				}
+			}
+		}
+		if (task.contains("Class")) {
+			Object player = Class.class;
 			curr_event = Class.class;
 		//	m.getServer().getLogger().info(curr_event.getClass().getName());
 			task = task.replace("Class.", "");
 			String classname = "event";
-			Class c = curr_event.getClass();
+			Class c = (Class) curr_event;
 			for (Method d : c.getDeclaredMethods()) {
 				if (task.contains(d.getName())) {
 					Class[] params = d.getParameterTypes();
@@ -624,7 +901,7 @@ public class NodeProccessor {
 								finall = argumentParser(arg1, player, finall);
 					//			m.getServer().getLogger().info(finall.getClass().getName() + " " + arg1.getName());
 								m.getServer().broadcastMessage(arg1.getName());
-								player.getClass().getDeclaredMethod(d.getName(), arg1).invoke(player, finall);
+								((Class) player).getDeclaredMethod(d.getName(), arg1).invoke(player, finall);
 							} catch (IllegalAccessException e1) {
 								// TODO Auto-generated catch block
 								e1.printStackTrace();
@@ -957,7 +1234,7 @@ public class NodeProccessor {
 					String[] fields = task.split(";");
 					if (params_count == 0) {
 						if (isMethod(task)) {
-							getIsMethod(player,task);
+							player = getIsMethod(player,task);
 						}
 					}
 					if (fields.length == params.length) {
@@ -2156,6 +2433,253 @@ public class NodeProccessor {
 						}
 					}
 				}
+				if (!task.contains("Bukkit") && !task.contains("event") && !task.contains("player") && !task.contains("Class")) {
+					Object player = new Object();
+					String classname = "event";
+					for (String var : variables.keySet()) {
+						if (task.contains(var)) {
+							player = variables.get(var);
+							classname = var;
+						}
+					}
+					Class c = (Class) player.getClass();
+					task= task.replace(classname, "");
+					//m.getServer().broadcastMessage(c.getName());
+					for (Method d : c.getMethods()) {
+						if (task.contains(d.getName())) {
+							Class[] params = d.getParameterTypes();
+							int params_count = d.getParameterCount();
+							task = task.replace(d.getName()+"(", "");
+							String[] fields = task.split(";");
+							if (params_count == 0) {
+								if (isMethod(task)) {
+									varitem = getIsMethod(player,task);
+								}
+							}
+							if (fields.length == params.length) {
+							List<String> newclass = new ArrayList<String>();
+							Map<String,List<String>> arguments = new HashMap<String,List<String>>();
+							List<Object> arguments_final = new ArrayList<Object>();
+							for (String f : fields) {
+								if (f.contains("new")) {
+									f = f.replace("new ", "");
+									f = f.replaceAll("\\s+","");
+									f = f.replace("(", "~");
+									String[] classtodeclare = f.split("~");
+						//			m.getServer().getLogger().info(classtodeclare[0]);
+									newclass.add(classtodeclare[0]);
+									String nw = classtodeclare[0];
+									classtodeclare[1] = classtodeclare[1].replace(")", "");
+							//		m.getServer().getLogger().info(classtodeclare[1]);
+									List<String> ags = new ArrayList<String>();
+									String[] args = classtodeclare[1].split(",");
+									if (args.length > 0) {
+										for (String ar : args) {
+											ags.add(ar);
+										}
+									} else {
+										String plll = classtodeclare[1].replace(")", "");
+										ags.add(plll);
+									}
+									arguments.put(nw, ags);
+								} else {
+									arguments.put(f, Arrays.asList(f.replace(")","")));
+								}
+							}
+							m.getServer().getLogger().info(newclass.size()+"");
+							int index = 0;
+							if (newclass.size() > 0) {
+								for (String ff : newclass) {
+									if (arguments.containsKey(ff)) {
+								//		m.getServer().getLogger().info(ff);
+										try {
+									//		m.getServer().getLogger().info("Getting parameters..");
+										//	m.getServer().getLogger().info(params[index].getName().replace("[L", "").replace(";", ""));
+											Constructor[] cont = null;
+											try {
+												cont = Class.forName(params[index].getName().replace("[L", "").replace(";", "")).getConstructors();
+											} catch (SecurityException e1) {
+												// TODO Auto-generated catch block
+												e1.printStackTrace();
+											} catch (ClassNotFoundException e1) {
+												// TODO Auto-generated catch block
+												e1.printStackTrace();
+											}
+											for (Constructor co : cont) {
+												Parameter[] coneeds = co.getParameters();
+												if (coneeds.length == arguments.get(ff).size()) {
+										//		m.getServer().getLogger().info("Types: "+coneeds.length);
+												List<Object> papa = new ArrayList<Object>();
+												int indp = 0;
+												for (String parse : arguments.get(ff)) {
+													try {	
+															Class cll = (Class) coneeds[indp].getType().getClass().getGenericSuperclass();
+															Object param = cll.cast(parse);
+															papa.add(param);
+														} catch(ClassCastException e) {
+															e.printStackTrace();
+														}
+													indp++;
+														
+												}
+												if (co.getParameterCount() == 1) {
+													m.getServer().getLogger().info("Param count: 1");
+													try {
+														Object arg1 = papa.get(0);
+														if (isMethod(papa.get(0).toString())) {
+															arg1 = getIsMethod(player, papa.get(0).toString());
+														}
+														Object parsed = co.newInstance(papa.get(0));
+														arguments_final.add(parsed);
+													} catch (IllegalArgumentException e) {
+														// TODO Auto-generated catch block
+														e.printStackTrace();
+													} catch (InvocationTargetException e) {
+														// TODO Auto-generated catch block
+														e.printStackTrace();
+													}
+												}
+												if (co.getParameterCount() == 2) {
+													try {
+														Object parsed = co.newInstance(papa.get(0), papa.get(1));
+														arguments_final.add(parsed);
+													} catch (IllegalArgumentException e) {
+														// TODO Auto-generated catch block
+														e.printStackTrace();
+													} catch (InvocationTargetException e) {
+														// TODO Auto-generated catch block
+														e.printStackTrace();
+													}
+												}
+												if (co.getParameterCount() == 3) {
+													try {
+														Object parsed = co.newInstance(papa.get(0), papa.get(1), papa.get(2));
+														arguments_final.add(parsed);
+													} catch (IllegalArgumentException e) {
+														// TODO Auto-generated catch block
+														e.printStackTrace();
+													} catch (InvocationTargetException e) {
+														// TODO Auto-generated catch block
+														e.printStackTrace();
+													}
+												}
+												if (co.getParameterCount() == 4) {
+													try {
+														Object parsed = co.newInstance(papa.get(0), papa.get(1), papa.get(2), papa.get(3));
+														arguments_final.add(parsed);
+													} catch (IllegalArgumentException e) {
+														// TODO Auto-generated catch block
+														e.printStackTrace();
+													} catch (InvocationTargetException e) {
+														// TODO Auto-generated catch block
+														e.printStackTrace();
+													}
+												}
+											}
+											}
+										} catch (InstantiationException e) {
+											// TODO Auto-generated catch block
+											e.printStackTrace();
+										} catch (IllegalAccessException e) {
+											// TODO Auto-generated catch block
+											e.printStackTrace();
+										}
+									}
+								}
+								index++;
+							} else {
+								for (String key : arguments.keySet()) {
+									List<String> cr = arguments.get(key);
+									arguments_final.add(cr.get(0));
+								}
+							}
+					//		m.getServer().getLogger().info(d.getName());
+							m.getServer().getLogger().info(arguments_final.size()+"");
+							if (params.length == 1) {
+								if (arguments_final.size() > 0) {
+									try {
+										Class arg1 = parseClass(params[0].getName());
+										Object finall = arguments_final.get(0);
+										finall = argumentParser(arg1, player, finall);
+						//				m.getServer().getLogger().info(finall.getClass().getName() + " " + arg1.getName());
+										varitem = player.getClass().getDeclaredMethod(d.getName(), arg1).invoke(player, finall);
+									} catch (IllegalAccessException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									} catch (IllegalArgumentException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									} catch (InvocationTargetException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									} catch (NoSuchMethodException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									} catch (SecurityException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									}
+								}
+							}
+							
+							if (params.length == 2) {
+								if (arguments_final.size() > 0) {
+									try {
+										Class arg1 = int.class;
+										try {
+											arg1 = Class.forName(params[0].getName().replace("[L", "").replace("[B", "").replace(";", ""));
+										} catch (ClassNotFoundException e) {
+											// TODO Auto-generated catch block
+											e.printStackTrace();
+										}
+										Class arg2 = int.class;
+										try {
+											arg1 = Class.forName(params[1].getName().replace("[L", "").replace("[B", "").replace(";", ""));
+										} catch (ClassNotFoundException e) {
+											// TODO Auto-generated catch block
+											e.printStackTrace();
+										}
+										varitem = getClass().getDeclaredMethod(d.getName(), arg1, arg2).invoke(player, arguments_final.get(0), arguments_final.get(1));
+
+									} catch (IllegalAccessException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									} catch (IllegalArgumentException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									} catch (InvocationTargetException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									} catch (NoSuchMethodException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									} catch (SecurityException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+								}
+							}
+							
+							if (params.length == 3) {
+								try {
+									d.invoke(arguments_final.get(0), arguments_final.get(1), arguments_final.get(2));
+								} catch (IllegalAccessException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} catch (IllegalArgumentException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} catch (InvocationTargetException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+							}
+							
+							
+						}
+						}
+					}
+				}
 			if (varname != null && varitem != null) {
 				if (variables.containsKey(varname)) {
 					variables.replace(varname, varitem);
@@ -2170,6 +2694,9 @@ public class NodeProccessor {
 	
 	private Class parseClass(String name) {
 		Class c = String.class;
+		if (name.contains("class")) {
+			c = Class.class;
+		}
 		if (name.contains("String")) {
 			c = String.class;
 		}
@@ -2325,6 +2852,15 @@ public class NodeProccessor {
 					ff = ff.replaceAll("\\s+", "");
 					f = Boolean.parseBoolean(ff);
 				}
+				if (arg1.equals(Class.class)) {
+					ff = ff.replaceAll("\\s+", "");
+					try {
+						f = Class.forName(ff);
+					} catch (ClassNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
 			} else {
 				String ff = f.toString();
 				if (arg1.equals(String.class)) {
@@ -2346,6 +2882,16 @@ public class NodeProccessor {
 					ff = ff.replaceAll("\\s+", "");
 					f = Boolean.parseBoolean(ff);
 				}
+				if (arg1.equals(Class.class)) {
+					ff = ff.replaceAll("\\s+", "");
+					try {
+						f = Class.forName(ff);
+					} catch (ClassNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+
 
 			}
 		}
@@ -2394,19 +2940,21 @@ public class NodeProccessor {
 	public Object getIsMethod(Object original, String c) {
 		Object toReturn = original;
 		Class player = Player.class;
+		boolean continuee = true;
 		if (variables.containsKey(c)) {
 			m.getServer().getLogger().info(c);
 			original = variables.get(c);
 			toReturn = variables.get(c);
 			player = (Class) original;
 		}
-		if (!c.contains("player.") && !c.contains("bukkit.") && !c.contains("event.")) {
+		if (!c.contains("player.") && !c.contains("bukkit.") && !c.contains("event.") && !c.contains("Class.")) {
+			continuee = false;
 			for (Method d: player.getMethods()) {
 			if (c.contains(d.getName())) {
 				if (!c.contains(".")) {
 					if (d.getTypeParameters().length < 1) {
 						try {
-							toReturn = player.getMethod(d.getName()).invoke(player.cast(original));
+							toReturn = player.getMethod(d.getName()).invoke(original);
 						} catch (IllegalAccessException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -2603,6 +3151,7 @@ public class NodeProccessor {
 
 		}
 		}
+		if (continuee) {
 		if (c.contains("player.")) {
 			c = c.replace("player.", "");
 			for (Method d: player.getMethods()) {
@@ -3217,6 +3766,7 @@ public class NodeProccessor {
 
 				}
 			}
+		}
 		}
 		}
 		}
