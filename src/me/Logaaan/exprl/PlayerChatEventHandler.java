@@ -24,6 +24,7 @@ public class PlayerChatEventHandler implements Listener {
 	
 	@EventHandler
 	public void onChat(PlayerChatEvent e) {
+		e.getPlayer().get
 		for (String i : instructions) {
 			String u = i;
 			if (u.contains("give")) {

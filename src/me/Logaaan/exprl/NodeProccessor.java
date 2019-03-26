@@ -2942,7 +2942,7 @@ public class NodeProccessor {
 		Class player = Player.class;
 		boolean continuee = true;
 		if (variables.containsKey(c)) {
-			m.getServer().getLogger().info(c);
+			m.getServer().getLogger().info("Variable "+c);
 			original = variables.get(c);
 			toReturn = variables.get(c);
 			player = (Class) original;
@@ -3356,7 +3356,7 @@ public class NodeProccessor {
 
 		}
 		}
-		if (c.contains("Bukkit.")) {
+		if (c.contains("Bukkit.") && !c.contains("org.Bukkit")) {
 			c = c.replace("Bukkit.", "");
 		}
 		player = Bukkit.class;
